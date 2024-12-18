@@ -19,12 +19,33 @@ const HomeScreen = ({ positive = false, integer = false }) => {
   const colorScheme = useColorScheme();
   const deleteIntervalRef = useRef<number | undefined>(undefined);
 
-  const handleKeyPress = (value) => {
-    if (value === 'del') {
-      setInputValue((prev) => prev.slice(0, -1));
-    } else {
-      setInputValue((prev) => prev + value);
-    }
+  const handleKeyPress = (value: string) => {
+    setInputValue((prev) => {
+      // Caso del botón "delete"
+      if (value === 'del') return prev.slice(0, -1);
+
+      let newValue = prev;
+
+      // Validación para signo negativo al principio
+      if (value === '-') {
+        if (prev.length === 0) {
+          newValue = '-'; // Permite "-" solo al inicio si el input está vacío
+        }
+        return newValue; // Ignora "-" si ya está presente o no es el inicio
+      }
+
+      // Validación para un solo "." o ","
+      if (value === '.' || value === ',') {
+        if (prev.includes(value)) return prev; // Ignora si ya existe el símbolo
+      }
+
+      // Validación final: agrega el valor
+      newValue = prev + value;
+
+      // Validación regex para garantizar formato válido (número con opcional - al inicio, una sola "," o ".")
+      const regex = /^-?\d*(?:[.,]?\d*)$/;
+      return regex.test(newValue) ? newValue : prev; // Solo actualiza si pasa la validación
+    });
   };
 
   // Maneja el inicio del borrado continuo
