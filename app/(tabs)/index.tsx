@@ -1,7 +1,7 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -13,7 +13,7 @@ import {
   useColorScheme,
 } from 'react-native';
 
-const HomeScreen = ({ positive = true, integer = false }) => {
+const HomeScreen = ({ positive = false, integer = false }) => {
   const [inputValue, setInputValue] = useState('');
   const [isKeyboardVisible, setKeyboardVisible] = useState(true);
   const colorScheme = useColorScheme();
@@ -55,6 +55,13 @@ const HomeScreen = ({ positive = true, integer = false }) => {
     { label: '2', value: '2' },
     { label: '3', value: '3' },
     {
+      label: '',
+      value: '',
+    },
+    { label: '4', value: '4' },
+    { label: '5', value: '5' },
+    { label: '6', value: '6' },
+    {
       label: (
         <AntDesign
           name='minus'
@@ -63,19 +70,6 @@ const HomeScreen = ({ positive = true, integer = false }) => {
         />
       ),
       value: '-',
-    },
-    { label: '4', value: '4' },
-    { label: '5', value: '5' },
-    { label: '6', value: '6' },
-    {
-      label: (
-        <MaterialCommunityIcons
-          name='keyboard-space'
-          size={24}
-          color={colorScheme === 'dark' ? 'white' : 'black'}
-        />
-      ),
-      value: ' ',
     },
     { label: '7', value: '7' },
     { label: '8', value: '8' },
@@ -103,6 +97,7 @@ const HomeScreen = ({ positive = true, integer = false }) => {
         />
       ),
       value: '',
+      isExit: true,
     },
   ];
 
@@ -179,7 +174,15 @@ const HomeScreen = ({ positive = true, integer = false }) => {
                       onPressOut={
                         key.isDelete ? handleDeletePressOut : undefined
                       }
-                      onPress={() => !key.isDelete && handleKeyPress(key.value)}
+                      onPress={() => {
+                        if (!key.isDelete && !key.isExit) {
+                          handleKeyPress(key.value);
+                        } else {
+                          if (key.isExit) {
+                            setKeyboardVisible(false);
+                          }
+                        }
+                      }}
                     >
                       <Text
                         style={[
