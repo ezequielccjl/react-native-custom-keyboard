@@ -1,19 +1,16 @@
-import AntDesign from '@expo/vector-icons/AntDesign';
-import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
   useColorScheme,
 } from 'react-native';
+import { Keyboard } from './Keyboard';
+import { keys } from './arrayKeys';
 
-const HomeScreen = ({ positive = false, integer = false }) => {
+const InputCustomKeyboard = ({ positive = false, integer = false }) => {
   const [inputValue, setInputValue] = useState('');
   const [isKeyboardVisible, setKeyboardVisible] = useState(true);
   const colorScheme = useColorScheme();
@@ -21,49 +18,37 @@ const HomeScreen = ({ positive = false, integer = false }) => {
 
   const handleKeyPress = (value: string) => {
     setInputValue((prev) => {
-      // Caso del botón "delete"
       if (value === 'del') return prev.slice(0, -1);
-
       let newValue = prev;
-
-      // Validación para signo negativo al principio
       if (value === '-') {
         if (prev.length === 0) {
-          newValue = '-'; // Permite "-" solo al inicio si el input está vacío
+          newValue = '-';
         }
-        return newValue; // Ignora "-" si ya está presente o no es el inicio
+        return newValue;
       }
-
-      // Validación para un solo "." o ","
       if (value === '.' || value === ',') {
-        if (prev.includes(value)) return prev; // Ignora si ya existe el símbolo
+        if (prev.includes(value)) return prev;
       }
-
-      // Validación final: agrega el valor
       newValue = prev + value;
-
-      // Validación regex para garantizar formato válido (número con opcional - al inicio, una sola "," o ".")
       const regex = /^-?\d*(?:[.,]?\d*)$/;
-      return regex.test(newValue) ? newValue : prev; // Solo actualiza si pasa la validación
+      return regex.test(newValue) ? newValue : prev;
     });
   };
 
-  // Maneja el inicio del borrado continuo
   const handleDeletePressIn = () => {
     deleteIntervalRef.current = setInterval(() => {
-      setInputValue((prev) => prev.slice(0, -1)); // Borra el último carácter continuamente
-    }, 50) as unknown as number; // Ajusta la velocidad del borrado (50 ms)
+      setInputValue((prev) => prev.slice(0, -1));
+    }, 50) as unknown as number;
   };
 
-  // Maneja el fin del borrado continuo
   const handleDeletePressOut = () => {
     if (deleteIntervalRef.current !== undefined) {
-      clearInterval(deleteIntervalRef.current); // Limpia el intervalo
-      deleteIntervalRef.current = undefined; // Restablece el valor
+      clearInterval(deleteIntervalRef.current);
+      deleteIntervalRef.current = undefined;
     }
   };
 
-  const splitIntoRows = (keys, columns) => {
+  const splitIntoRows = (keys: any[], columns: number) => {
     const rows = [];
     for (let i = 0; i < keys.length; i += columns) {
       rows.push(keys.slice(i, i + columns));
@@ -71,58 +56,9 @@ const HomeScreen = ({ positive = false, integer = false }) => {
     return rows;
   };
 
-  const keys = [
-    { label: '1', value: '1' },
-    { label: '2', value: '2' },
-    { label: '3', value: '3' },
-    {
-      label: '',
-      value: '',
-    },
-    { label: '4', value: '4' },
-    { label: '5', value: '5' },
-    { label: '6', value: '6' },
-    {
-      label: (
-        <AntDesign
-          name='minus'
-          size={24}
-          color={colorScheme === 'dark' ? 'white' : 'black'}
-        />
-      ),
-      value: '-',
-    },
-    { label: '7', value: '7' },
-    { label: '8', value: '8' },
-    { label: '9', value: '9' },
-    {
-      label: (
-        <Feather
-          name='delete'
-          size={25}
-          color={colorScheme === 'dark' ? 'white' : 'black'}
-        />
-      ),
-      value: 'del',
-      isDelete: true,
-    },
-    { label: ',', value: ',' },
-    { label: '0', value: '0' },
-    { label: '.', value: '.' },
-    {
-      label: (
-        <MaterialCommunityIcons
-          name='arrow-collapse-right'
-          size={24}
-          color={colorScheme === 'dark' ? 'white' : 'black'}
-        />
-      ),
-      value: '',
-      isExit: true,
-    },
-  ];
-
-  const rows = splitIntoRows(keys, 4);
+  const rows = useMemo(() => {
+    return splitIntoRows(keys(colorScheme), 4);
+  }, [colorScheme]);
 
   return (
     <View
@@ -161,79 +97,23 @@ const HomeScreen = ({ positive = false, integer = false }) => {
         onRequestClose={() => setKeyboardVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View
-            style={[
-              styles.keyboard,
-              colorScheme === 'dark'
-                ? styles.darkKeyboard
-                : styles.lightKeyboard,
-            ]}
-          >
-            {rows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.row}>
-                {row.map((key, keyIndex: number) => {
-                  const lastRow = keyIndex === row.length - 1;
-                  const isDisabled =
-                    (positive && key.value === '-') ||
-                    (integer && (key.value === ',' || key.value === '.'));
-
-                  return (
-                    <TouchableOpacity
-                      key={keyIndex}
-                      style={[
-                        styles.key,
-                        colorScheme === 'dark'
-                          ? styles.darkKey
-                          : styles.lightKey,
-                        lastRow && colorScheme === 'dark'
-                          ? styles.lastKeyDark
-                          : lastRow && colorScheme !== 'dark' && styles.lastKey,
-                        //isDisabled && styles.disabledKey,
-                      ]}
-                      disabled={isDisabled}
-                      onPressIn={key.isDelete ? handleDeletePressIn : undefined}
-                      onPressOut={
-                        key.isDelete ? handleDeletePressOut : undefined
-                      }
-                      onPress={() => {
-                        if (!key.isDelete && !key.isExit) {
-                          handleKeyPress(key.value);
-                        } else {
-                          if (key.isExit) {
-                            setKeyboardVisible(false);
-                          }
-                        }
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.keyText,
-                          colorScheme === 'dark'
-                            ? styles.darkText
-                            : styles.lightText,
-                        ]}
-                      >
-                        {!isDisabled ? key.label : ''}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ))}
-            <TouchableWithoutFeedback onPress={() => setKeyboardVisible(false)}>
-              <AntDesign
-                name='down'
-                size={20}
-                color={colorScheme === 'dark' ? 'white' : 'black'}
-                style={styles.closeIcon}
-              />
-            </TouchableWithoutFeedback>
-          </View>
+          <Keyboard
+            rows={rows}
+            handleKeyPress={handleKeyPress}
+            handleDeletePressIn={handleDeletePressIn}
+            handleDeletePressOut={handleDeletePressOut}
+            handleCloseKeyboard={() => setKeyboardVisible(false)}
+            positive={positive}
+            integer={integer}
+            colorScheme={colorScheme}
+          />
         </View>
       </Modal>
     </View>
   );
 };
+
+export default InputCustomKeyboard;
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -253,33 +133,4 @@ const styles = StyleSheet.create({
   darkInput: { backgroundColor: '#313630', borderColor: '#394B3D' },
   lightInput: { backgroundColor: '#EEEEEE', borderColor: '#CCCCCC' },
   modalContainer: { flex: 1, justifyContent: 'flex-end' },
-  keyboard: { padding: 5 },
-  darkKeyboard: { backgroundColor: '#1C211B' },
-  lightKeyboard: { backgroundColor: '#DDDDDD' },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  key: {
-    width: Dimensions.get('window').width / 4 - 10,
-    paddingVertical: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 40,
-  },
-  darkKey: { backgroundColor: '#313630' },
-  lightKey: { backgroundColor: '#F5F5F5' },
-  keyText: { fontSize: 25, fontWeight: 'regular' },
-  disabledKey: { backgroundColor: '#A0A0A0' },
-  disabledText: { color: '#7D7D7D' },
-  closeIcon: { marginLeft: 10, padding: 5 },
-  lastKeyDark: {
-    backgroundColor: '#394B3D',
-  },
-  lastKey: {
-    backgroundColor: '#C9C9CB',
-  },
 });
-
-export default HomeScreen;
